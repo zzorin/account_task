@@ -51,7 +51,7 @@ ActiveRecord::Schema.define(version: 2022_05_27_064029) do
 
   create_table "financial_transactions", force: :cascade do |t|
     t.string "title"
-    t.string "kind"
+    t.float "starting_balance", default: 0.0, null: false
     t.float "amount", default: 0.0, null: false
     t.bigint "account_id"
     t.datetime "created_at", precision: 6, null: false

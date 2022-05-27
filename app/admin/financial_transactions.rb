@@ -1,6 +1,15 @@
 ActiveAdmin.register FinancialTransaction do
   actions :all, except: [:edit, :update]
-  permit_params :title, :kind, :amount, :account_id
+  permit_params :title, :amount, :account_id
+
+  form do |f|
+    f.inputs do
+      f.input :account
+      f.input :title
+      f.input :amount
+    end
+    f.actions
+  end
 
   controller do
     def create
@@ -20,7 +29,9 @@ ActiveAdmin.register FinancialTransaction do
     end
 
     def create_transaction
+      @account = Account.find_by(id: transaction_params[:account_id])
       @financial_transaction = FinancialTransaction.new(transaction_params)
+      @financial_transaction.update(starting_balance: @account.balance)
       if @financial_transaction.save
         success_result
       else
@@ -31,11 +42,7 @@ ActiveAdmin.register FinancialTransaction do
     def set_account_balance
       @account = Account.find_by(id: transaction_params[:account_id])
       amount = transaction_params[:amount].to_f
-      if transaction_params[:kind] == 'deposit'
-        @account.balance += amount
-      else
-        @account.balance -= amount
-      end
+      @account.balance = @account.balance + amount
 
       if @account.save
         success_result
@@ -66,7 +73,7 @@ ActiveAdmin.register FinancialTransaction do
     end
 
     def transaction_params
-      params.require(:financial_transaction).permit(:title, :kind, :amount, :account_id)
+      params.require(:financial_transaction).permit(:title, :amount, :account_id)
     end
   end
 
