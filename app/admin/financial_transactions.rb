@@ -1,30 +1,30 @@
 ActiveAdmin.register FinancialTransaction do
-
-  # See permitted parameters documentation:
-  # https://github.com/activeadmin/activeadmin/blob/master/docs/2-resource-customization.md#setting-up-strong-parameters
-  #
-  # Uncomment all parameters which should be permitted for assignment
-  #
   actions :all, except: [:edit, :update]
   permit_params :title, :kind, :amount, :account_id
-  #
-  # or
-  #
-  # permit_params do
-  #   permitted = [:title, :kind, :amount, :account_id]
-  #   permitted << :other if params[:action] == 'create' && current_user.admin?
-  #   permitted
-  # end
 
   controller do
     def create
+      result = nil
       ActiveRecord::Base.transaction do
-        @financial_transaction = FinancialTransaction.new(transaction_params)
-        if @financial_transaction.save
-          set_account_balance
-        else
-          render :new
+        %w(create_transaction set_account_balance).each do |method|
+          result = send method
+          raise ActiveRecord::Rollback if result.failure?
         end
+      end
+
+      if result.success?
+        redirect_to admin_financial_transactions_path, notice: 'Transaction succeed!'
+      else
+        render :new, notice: result.message
+      end
+    end
+
+    def create_transaction
+      @financial_transaction = FinancialTransaction.new(transaction_params)
+      if @financial_transaction.save
+        success_result
+      else
+        invalid_params_result(@financial_transaction)
       end
     end
 
@@ -38,13 +38,32 @@ ActiveAdmin.register FinancialTransaction do
       end
 
       if @account.save
-        redirect_to admin_financial_transactions_path, notice: 'Transaction succeed!'
+        success_result
       else
-        render :new
+        invalid_params_result(@account)
       end
     end
 
     private
+
+    def success_result(status: :success, message: nil, data: {})
+      build_result success: true, status: status, message: message, data: data
+    end
+
+    def invalid_params_result(object)
+      message = object.is_a?(ActiveRecord::Base) ? "#{object.model_name.human}: #{object.errors.full_messages.join('. ')}" : object
+      build_result success: false, status: :invalid_params, message: message
+    end
+
+    def build_result(success:, status:, message: nil, data: {})
+      Hashie::Mash.new(
+        success?: success,
+        failure?: !success,
+        status: status,
+        message: message,
+        data: data
+      )
+    end
 
     def transaction_params
       params.require(:financial_transaction).permit(:title, :kind, :amount, :account_id)
