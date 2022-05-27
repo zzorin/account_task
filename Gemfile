@@ -5,7 +5,7 @@ ruby '3.1.2'
 
 gem 'activeadmin'
 
-# Plus integrations with:
+gem 'enumerize'
 gem 'devise'
 gem 'cancancan'
 gem 'draper'
