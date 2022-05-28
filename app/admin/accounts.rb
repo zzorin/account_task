@@ -5,6 +5,13 @@ ActiveAdmin.register Account do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
+  form do |f|
+    f.inputs do
+      f.input :admin_user, :member_label => :email
+      f.input :balance
+    end
+    f.actions
+  end
   actions :all, except: [:edit, :update]
   permit_params :balance, :admin_user_id
   #

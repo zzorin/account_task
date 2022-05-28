@@ -4,7 +4,7 @@ ActiveAdmin.register FinancialTransaction do
 
   form do |f|
     f.inputs do
-      f.input :account
+      f.input :account, :member_label => :id
       f.input :title
       f.input :amount
     end
@@ -24,7 +24,8 @@ ActiveAdmin.register FinancialTransaction do
       if result.success?
         redirect_to admin_financial_transactions_path, notice: 'Transaction succeed!'
       else
-        render :new, notice: result.message
+        flash[:error] = result.message
+        render :new
       end
     end
 
