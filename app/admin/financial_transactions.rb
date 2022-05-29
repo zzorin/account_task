@@ -29,8 +29,9 @@ ActiveAdmin.register FinancialTransaction do
   end
 
   controller do
-    attr_accessor :starting_balance
-    before_action account: :index do
+    before_action :set_default_params, only: [:index]
+
+    def set_default_params
       params[:order] = 'created_at_asc'
       params[:q] = {account_id_eq: Account.first&.id} if params[:commit].blank?
     end
@@ -40,7 +41,7 @@ ActiveAdmin.register FinancialTransaction do
       ActiveRecord::Base.transaction do
         %w(create_transaction set_account_balance).each do |method|
           result = send method
-          raise ActiveRecord::Rollback if result.failure?
+          raise ActiveRecord::Rollback unless result.success?
         end
       end
 
@@ -78,22 +79,19 @@ ActiveAdmin.register FinancialTransaction do
 
     private
 
-    def success_result(status: :success, message: nil, data: {})
-      build_result success: true, status: status, message: message, data: data
+    def success_result
+      build_result success: true
     end
 
     def invalid_params_result(object)
-      message = object.is_a?(ActiveRecord::Base) ? "#{object.model_name.human}: #{object.errors.full_messages.join('. ')}" : object
-      build_result success: false, status: :invalid_params, message: message
+      message = "#{object.model_name.human}: #{object.errors.full_messages.join('. ')}"
+      build_result success: false, message: message
     end
 
-    def build_result(success:, status:, message: nil, data: {})
+    def build_result(success:, message: nil)
       Hashie::Mash.new(
         success?: success,
-        failure?: !success,
-        status: status,
-        message: message,
-        data: data
+        message: message
       )
     end
 
