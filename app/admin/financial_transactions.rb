@@ -50,6 +50,9 @@ ActiveAdmin.register FinancialTransaction do
         flash[:error] = result.message
         render :new
       end
+    rescue => e
+      flash[:error] = e.message
+      redirect_to admin_financial_transactions_path
     end
 
     def create_transaction
