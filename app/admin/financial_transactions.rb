@@ -2,9 +2,26 @@ ActiveAdmin.register FinancialTransaction do
   actions :all, except: [:edit, :update]
   permit_params :title, :amount, :account_id
 
+  index do
+    panel 'Balance' do
+      render partial: 'balance'
+    end
+    table_for financial_transactions do
+      column :id
+      column :title
+      column :starting_balance
+      column :amount
+      column :created_at
+    end
+  end
+
+  filter :account, member_label: :id, include_blank: false
+  filter :title
+  filter :created_at
+
   form do |f|
     f.inputs do
-      f.input :account, :member_label => :id
+      f.input :account, member_label: :id
       f.input :title
       f.input :amount
     end
@@ -12,6 +29,12 @@ ActiveAdmin.register FinancialTransaction do
   end
 
   controller do
+    attr_accessor :starting_balance
+    before_action account: :index do
+      params[:order] = 'created_at_asc'
+      params[:q] = {account_id_eq: Account.first&.id} if params[:commit].blank?
+    end
+
     def create
       result = nil
       ActiveRecord::Base.transaction do
