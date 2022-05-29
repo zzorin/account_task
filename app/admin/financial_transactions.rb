@@ -53,7 +53,7 @@ ActiveAdmin.register FinancialTransaction do
     end
 
     def create_transaction
-      @account = Account.find_by(id: transaction_params[:account_id])
+      @account = Account.lock('FOR UPDATE NOWAIT').find_by(id: transaction_params[:account_id])
       @financial_transaction = FinancialTransaction.new(transaction_params)
       @financial_transaction.update(starting_balance: @account.balance)
       if @financial_transaction.save
@@ -64,10 +64,8 @@ ActiveAdmin.register FinancialTransaction do
     end
 
     def set_account_balance
-      @account = Account.find_by(id: transaction_params[:account_id])
       amount = transaction_params[:amount].to_f
-      @account.balance = @account.balance + amount
-
+      @account.balance += amount
       if @account.save
         success_result
       else
