@@ -8,13 +8,21 @@ RSpec.describe Admin::FinancialTransactionsController, type: :controller do
   end
   describe 'GET index' do
     let!(:account) { create(:account, admin_user: admin_user) }
-    let!(:financial_transaction)  { create :financial_transaction, account: account, amount: 10.5 }
-    let!(:financial_transaction)  { create :financial_transaction, account: account, amount: 0.5 }
     it 'returns correct balance' do
-      get :index
-      # expect(json['app_translations']).to eq(expected_json)
-      # 0
-      # 11
+      post :create, params: { financial_transaction: {"account_id"=>account.id, "amount"=>"10.5"} }
+      FinancialTransaction.first.update(created_at: DateTime.now - 2.days)
+      post :create, params: { financial_transaction: {"account_id"=>account.id, "amount"=>"0.5"} }
+      get :index, params: {
+        "q"=>{
+          "account_id_eq"=>account.id, "created_at_gteq_datetime"=>FinancialTransaction.last.created_at.strftime("%Y-%m-%d")
+          },
+        "commit"=>"Filter",
+        "order"=>"created_at_asc"
+      }
+      collection = controller.view_assigns['financial_transactions']
+      expect(collection.count).to eq(1)
+      expect(collection.first.starting_balance).to eq(10.5)
+      expect(collection.last.starting_balance + collection.last.amount).to eq(11)
     end
   end
   describe 'POST create' do
